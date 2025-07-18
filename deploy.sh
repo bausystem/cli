@@ -2,8 +2,42 @@
 
 set -euo pipefail
 
+# Default values
+SSH_PORT=""
+SSH_PORT_OPT=""
+
+# Parse options
+while getopts "P:h" opt; do
+  case ${opt} in
+    P )
+      SSH_PORT=$OPTARG
+      SSH_PORT_OPT="-p $SSH_PORT"
+      ;;
+    h )
+      echo "Usage: $0 [-P port] <user@host> <local_project_dir>"
+      echo ""
+      echo "Options:"
+      echo "  -P port    Specify SSH port for connection"
+      echo "  -h         Display this help message"
+      exit 0
+      ;;
+    \? )
+      echo "Invalid option: $OPTARG" 1>&2
+      echo "Usage: $0 [-P port] <user@host> <local_project_dir>"
+      exit 1
+      ;;
+    : )
+      echo "Invalid option: $OPTARG requires an argument" 1>&2
+      echo "Usage: $0 [-P port] <user@host> <local_project_dir>"
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND -1))
+
+# Check required positional arguments
 if [ "$#" -ne 2 ]; then
-  echo "Usage: $0 <user@host> <local_project_dir>"
+  echo "Usage: $0 [-P port] <user@host> <local_project_dir>"
   exit 1
 fi
 
@@ -28,12 +62,15 @@ fi
 REMOTE_DIR="/tmp/bausystem-${UUID}"
 
 echo ">>> Deploying ${LOCAL_DIR} to ${HOST}:${REMOTE_DIR}"
+if [ -n "$SSH_PORT" ]; then
+  echo ">>> Using SSH port: ${SSH_PORT}"
+fi
 
 # 1. Rsync local folder into the remote temp dir
-rsync -az -LK --delete "${LOCAL_DIR}/" "${HOST}:${REMOTE_DIR}/"
+rsync -az -LK --delete ${SSH_PORT:+"-e ssh $SSH_PORT_OPT"} "${LOCAL_DIR}/" "${HOST}:${REMOTE_DIR}/"
 
 # 2. SSH in and run the installer (either .sh or .php)
-ssh "${HOST}" bash <<EOF
+ssh ${SSH_PORT_OPT} "${HOST}" bash <<EOF
   set -euo pipefail
   echo ">>> Running installer on ${HOST}"
   
@@ -58,4 +95,4 @@ ssh "${HOST}" bash <<EOF
 EOF
 
 # Clean up remote directory
-ssh "${HOST}" "rm -rf ${REMOTE_DIR}"
+ssh ${SSH_PORT_OPT} "${HOST}" "rm -rf ${REMOTE_DIR}"
