@@ -74,18 +74,21 @@ ssh ${SSH_PORT_OPT} "${HOST}" bash <<EOF
   set -euo pipefail
   echo ">>> Running installer on ${HOST}"
   
+  # Change to the remote directory first to make relative paths work
+  cd "${REMOTE_DIR}"
+  
   # Check if both installers exist
-  if [ -f "${REMOTE_DIR}/install.sh" ] && [ -f "${REMOTE_DIR}/install.php" ]; then
+  if [ -f "install.sh" ] && [ -f "install.php" ]; then
     echo ">>> WARNING: Both install.sh and install.php found in ${REMOTE_DIR}"
     echo ">>> This could indicate an error in project structure"
     echo ">>> Using install.sh by default"
-    bash "${REMOTE_DIR}/install.sh"
-  elif [ -f "${REMOTE_DIR}/install.sh" ]; then
+    bash install.sh
+  elif [ -f "install.sh" ]; then
     echo ">>> Found install.sh, executing with bash"
-    bash "${REMOTE_DIR}/install.sh"
-  elif [ -f "${REMOTE_DIR}/install.php" ]; then
+    bash install.sh
+  elif [ -f "install.php" ]; then
     echo ">>> Found install.php, executing with php"
-    php "${REMOTE_DIR}/install.php"
+    php install.php
   else
     echo ">>> ERROR: Neither install.sh nor install.php was found in ${REMOTE_DIR}"
     exit 1
