@@ -74,6 +74,9 @@ ssh ${SSH_PORT_OPT} "${HOST}" bash <<EOF
   set -euo pipefail
   echo ">>> Running installer on ${HOST}"
   
+  # Set a trap to ensure cleanup on any exit
+  trap 'echo ">>> Cleaning up remote directory"; rm -rf "${REMOTE_DIR}"' EXIT
+  
   # Change to the remote directory first to make relative paths work
   cd "${REMOTE_DIR}"
   
@@ -95,7 +98,6 @@ ssh ${SSH_PORT_OPT} "${HOST}" bash <<EOF
   fi
   
   echo ">>> Done on ${HOST}"
+  
+  # Cleanup is handled by the EXIT trap
 EOF
-
-# Clean up remote directory
-ssh ${SSH_PORT_OPT} "${HOST}" "rm -rf ${REMOTE_DIR}"
